@@ -1,0 +1,345 @@
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>Game</title>
+		<canvas height='1150' width='2300' id='example'></canvas>
+		<script src = "JQuery.js"></script>
+		<script>var example = document.getElementById("example"),
+hol = example.getContext('2d');
+alert("Найти синий флажок тебе помогут WASD");
+var image_hero = new Image();
+var image_enemy = new Image();
+var image_wall = new Image();
+var image_road = new Image();
+var image_point = new Image();
+var ghosts = new Array();
+var cell_size=16;
+var interval = 100;
+var winWidth =document.body.clientWidth;
+var winHeight =document.body.clientHeight;
+var scrollX = 0;
+var scrollY = 0;
+var xsize = Math.floor(example.width/cell_size);
+var ysize = Math.floor(example.height/cell_size);
+var g = create2DArray(xsize, ysize);
+var ghost_count = 60;
+var wall_count = 0.42;
+var need_brick_count=Math.floor(xsize*ysize*wall_count);
+function changeScroll(){
+  if(scrollX + winWidth - hero.x*cell_size <= 5*cell_size){
+    scrollX += winWidth - 10*cell_size;
+  }else if(scrollY + winHeight - hero.y*cell_size <= 5*cell_size){
+    scrollY += winHeight - 10*cell_size;
+  }else if(hero.y*cell_size - scrollY <= 5*cell_size){
+    scrollY -= winHeight - 10*cell_size;
+  }
+  scroll(scrollX, scrollY);
+}
+function create2DArray(xsize, ysize){
+  var arr = new Array();
+  for(var i = 0;i<xsize;i++){
+    arr[i] = new Array();
+    for(var j =0;j<ysize;j++){
+      arr[i][j] = 0;
+    }
+  }
+  return arr;
+}
+var hero,exit;
+// image_hero.src = "hero.png";
+image_hero.src = " data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOwgAADsIBFShKgAAAABl0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC4yMfEgaZUAAABuSURBVDhPpZPBDcAgDAMzQZWB2K2jsFz3SGNE+zJqXB4XIRMbHolFxMDOw5OexAfo8dc3zS25ZkMF9LbhzQNeVswP8DgCKt9e0RHALupQUYGKClRUoKICFRWoqEBFhSzbg7Q3ytvLhDJDfqxz2A17t48A7qyK6AAAAABJRU5ErkJggg==";
+// image_enemy.src = "enemy.png";
+image_enemy.src = " data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOwQAADsEBuJFr7QAAABl0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC4yMfEgaZUAAACTSURBVDhPrZNBDsAQEEUtuIJ9DyNcoVtn6P3VNwQTTUbbxUsa/jxMUSmlmUPZjMvEzFXBN8Ysz4+FuoZa0RPI6FlAxWcNSEC2SJpAsjLHkYDOvApIsG9XbzgIxm7vEiFYTYj5RfD5CJ4N7uAh+Pgb6SIFNiEhjDfRZHavsumCLpHsBJlSPAsa1BM0lj9njLHnnNQNiki27IzmCqcAAAAASUVORK5CYII=";
+// image_wall.src = "wall.png";
+image_wall.src = " data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAZdEVYdFNvZnR3YXJlAHBhaW50Lm5ldCA0LjAuMjHxIGmVAAAC50lEQVQ4TxXRC1PSAADA8X2hurqy60I5COTNBgM2xmM4mQctQyszTEHejAEDN9xgA0YKTSYSZ2YPPa+7vlh29/8C//sBXdI/S0VPU8RVr/MlifRjXinqVhNBGbPNt6IKhS8kUXsdUjfghlOnBExAJ46IUagVg38MxW+76wWHLutaKftX2bCjCK0I6/DvE0leg0rOF7v6x0XTY6ARR0USreL+hXTcDJhriIdPxuiojyUCNRxicOh6Mij5bSzmyjle8gE7cC6wX7nGXGz//apdcPVJo6LxzOlRe8rVJnT5vMXcjIfyYVrKfmS335zV8gAfcY0TQW17bbazPtshpHVolMJvBtwphV4fJM+2wsMNTwt5KQQtDdT6na8Actybdz/vxtwN1J4HDXTASmPQ5UlPpSJ1zPbB+CTr0G0vP7wfeGdc0oQ2ICciyecP2Ai871jJw5Zd0FDBfX/UnrZHfQL1JXg1AxrStuU9hy5lXppyDKA2y6NyRj1iFK42P26NW+WFwN6dKXOhpbZppZSVmyXx4MOkVjihsxdDERAIfy/skBOhm5GgbIQGJDzdjPzcp+bvyNNEcLRJXAl1IeroYjY1iRRceqAd81bdy/tO/TeJPw5BDb+pjtl5zN6Ne0XceehevRwJA9LDIYaM+dEBaADYmLeJuY8I9LfS4QgfjdpSlmetiDsNG+mgNes0XfY5FjF/tD47cOoyoBFQO+xCaMulzK/xcFzNzY/+U6jdzjnPn9UrSjX/Xf18UjlUG1UxvatUi8AgGbp4G7/NbU0oRCa9nymMJwM/x0JvLTB/j0sE2MddUgxUSM+Awu9GHUBJBiuwuYlaGJ+piVhpj3HP+uKHOphReMWrr/tWWcR6XxXUc2u+mz4HCMnwq5WnTBi6R6hH4TxsZQjkbjKavCVLiL2MOosBWw62FHy2PdhyLTaBCZvVhNo5X9T4/KJHT/mC1qvczpR++c1CqilMetzOTDsFqbjTzW1eCfQ/fShptIghGM4AAAAASUVORK5CYII=";
+// image_road.src = "road.png";
+image_road.src =" data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAZdEVYdFNvZnR3YXJlAHBhaW50Lm5ldCA0LjAuMTnU1rJkAAAB1klEQVQ4TyWS6bKqMBCE88JWnVOlRwSC7AlLWAS9LAp6733Q8ynzI5VMenq6JxFBEBhj8jzXWp/PZynlNE1kLMu63W7DMCiloihOVZYkSZFrQQrEOI6Xy6Vt27qu2XRdB66qqufz+Xq9ON8f659heBdAE8cxUM/zDocDDbNP9H1PT4iu1+vjsSzra5rnuioFUCjJEuBOp1NZlmSgpxs1rKaqrreh6/q2qQRyoZnnmQLufN//iI5c18VS0zTkx3H6++//uq6B7wnHcWDFEMRFUSApDEPbtkHvdjs60NaVMkk1mrVKBQRY3AZFGSszgJg93mDhCtVIwq1rWwKtGxpKyNBDAOV4PB5Z6YlCrXNTmiyJBWR0oDpNUzbooRgzW5BhLYoyz8uqNK0xgtQmHZoPk0bG9ohU0hxtER0T1dR1hgfQxP1+B807LMvCTN+gKKIGwcw9VcpxPduxXeckGAgIyEAwB66hZxJQUEzlJ9K64WXq489egAMNCA8YYINpesKNvf1+z++S0pOez4TfL40nvhM1+EbD9hocoYWLQUHEW+isANl3reDPbDI2BPTsme/WlpEgmFMYJdKVKo3fkrgmuOZf8Ed4OHAcqaEbOkPm8WN9f33HUfALaruekSxrkfMAAAAASUVORK5CYII=";
+// image_point.src = "point.png";
+image_point.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOwgAADsIBFShKgAAAABl0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC4yMfEgaZUAAAFMSURBVDhPddI/LwRBGMfxPcbhJETUF6VCtCqVQuMdaCVqb8MLuFohITQqRCuRSEhIiKDSKERCQ+L/4/u7fcbN7u39kk+yO5nnmdnZydoJFjCDOdTNLEsVEqzm+n2EBBvFPc6xgimMoIE+n9VJ3mDY30je4BCf+MIHLrGOJYxhAnXEHSSN85V28ANLfOMJ+zjCFhbQ8EpPvl010MppA1HTuDM9v2Eb415Ngg1hF78oN6jyiFn4Z+gh2AbSHWjFtKGeRZ91gUnUYgMdygHiGcQta3IsfMcJWpjHQF4cE+wO5RXVULt6wR6mofPSjku/N9gVtGJa/IpTrKLpM3sk2C3i6jfQX1lEE4M+q5DiLQ12DH23GujS6Hr7IXWn+5oHO4O2/eAjPROLyw10iDr9NR+pTFpcbnCNZyz7yH/KRalO8l+l09/0kXaqijos+wMUkk3+YkBqfQAAAABJRU5ErkJggg==";
+var flag = false;
+var count = 0;
+function img_loaded(){
+  count++;
+  if(count>=5){
+    main();
+  }
+}
+class Exit{
+  constructor(x ,y, g){
+    this.x = x;
+    this.y = y;
+    this.g = g;
+  }
+  check(x,y){
+    if(xsize/2<=x && x<xsize && ysize/2<y && y<ysize && this.g[x][y]==0){
+      return true;
+    }
+    return false;
+  }
+}
+class Enemy{
+	constructor(x,y,g){
+		this.x = x;
+		this.y = y;
+    this.g = g;
+    this.turnX = 0;
+    this.turnY = 0;
+    this.lastcode= 0;
+	}
+	check(x,y){
+		if(this.g[x][y]==0){
+			return true;
+		}
+		return false;
+	}
+	tryTurn(x,y){
+		if(this.check(x,y)){
+			this.x = x;
+			this.y = y;
+			return true;
+		}else{
+			return false
+		}
+	}
+	 getImage(){
+		return null;
+	}
+}
+class Ghost extends Enemy{
+	getImage(){
+		return image_enemy;
+	}
+}
+class Hero extends Enemy{
+  keyDown(e){
+
+     var code = e.keyCode || e.which;
+     if(code == 87){
+       hero.turnX = 0;
+       hero.turnY = -1;
+     }else if(code == 68){
+       hero.turnX = 1;
+       hero.turnY = 0;
+     }else if(code == 83){
+       hero.turnX = 0;
+       hero.turnY = 1;
+     }else if(code == 65){
+       hero.turnX = -1;
+       hero.turnY = 0;
+     }else{
+       return;
+     }
+     hero.lastcode = code;
+     //console.log("second ",hero.x," ",hero.y," ",hero.turnX," ",hero.turnY," ",type(code));
+
+  }
+  keyUp(e){
+    if((e.keyCode||e.which)==hero.lastcode){
+    hero.turnX = 0;
+    hero.turnY = 0;
+  }
+  }
+
+  getImage(){
+    return image_hero;
+  }
+}
+
+
+
+function genEnemy(enemy){
+	for(var i=0;i<100;i++){
+		x = getRandomInt(0,xsize);
+		y = getRandomInt(0,ysize);
+		if(enemy.check(x,y)){
+			enemy.x = x;
+			enemy.y = y;
+		}
+	}
+}
+
+
+image_hero.onload = img_loaded;
+image_enemy.onload = img_loaded;
+image_wall.onload = img_loaded;
+image_road.onload = img_loaded;
+image_point.onload = img_loaded;
+main();
+
+function getRandomInt(min, max) {
+  return Math.floor(Math.random() * (max - min)) + min;
+}
+
+function dfs(x, y){
+  if(g[x][y]==0){
+    g[x][y] =3;
+    dfs(x+1,y);
+    dfs(x-1,y);
+    dfs(x,y+1);
+    dfs(x,y-1);
+  }
+}
+
+function genDfs(){
+  dfs(1, 1);
+  for(var x=0;x<xsize;x++){
+    for(var y=0;y<ysize;y++){
+      if(g[x][y]==0){
+        g[x][y]=1;
+      }else
+      if(g[x][y]==3){
+        g[x][y]=0;
+      }
+    }
+  }
+}
+
+
+function gen(){
+  for(var x=0;x<xsize;x++){
+    for(var y=0;y<ysize;y++){
+      g[x][y] = 0;
+    }
+  }
+  for(var i =0;i<xsize;i++){
+    g[i][0]=1;
+    g[i][ysize-1]=1;
+  }
+  for(var i=0;i<ysize;i++){
+    g[0][i]=1;
+    g[xsize-1][i]=1;
+  }
+  for(var i =0;i<need_brick_count;i++){
+    var x = getRandomInt(0,xsize);
+    var y = getRandomInt(0,ysize);
+      g[x][y]=1;
+  }
+  genDfs();
+}
+
+function drawCell(i,j) {
+  if(g[i][j]==1){
+    hol.drawImage(image_wall, i*cell_size, j*cell_size);
+  }else{
+    hol.drawImage(image_road, i*cell_size, j*cell_size);
+  }
+}
+
+function drawField(){
+  for(var i =0;i<xsize;i++){
+    for(var j = 0;j<ysize;j++){
+        drawCell(i,j);
+    }
+  }
+
+}
+function preGen(){
+  for(var iteration=0;iteration<500;iteration++){
+      gen();
+      var brick_count = 0;
+      for(var x=0;x<xsize;x++){
+        for(var y=0;y<ysize;y++){
+          if(g[x][y]==1){
+            brick_count++;
+          }
+        }
+      }
+      // console.log(brick_count,"   ",need_brick_count);
+      if(brick_count<1.15*need_brick_count){
+        break;
+      }
+  }
+}
+function ghostGen(){
+  for(var i =0; i<ghost_count;i++){
+    var x = getRandomInt(1, xsize - 1);
+    var y = getRandomInt(1, ysize -1);
+    while(g[x][y]!=0){
+      x = getRandomInt(1, xsize - 1);
+      y = getRandomInt(1, ysize - 1);
+    }
+    ghosts[i] = new Ghost(x, y, g);
+  }
+}
+
+function intersect(p1,p2){
+  if(p1.x == p2.x && p1.y == p2.y){
+    return true;
+  }
+  return false;
+}
+var flagturn=false;
+function nextTurn(){
+  flagturn = !flagturn;
+  if(flagturn){
+    return;
+  }
+  for(var i =0; i<ghost_count; i++){
+    if(ghosts[i].x == hero.x && ghosts[i].y == hero.y){
+      hero.tryTurn(1, 1);
+    }
+    drawCell(ghosts[i].x,ghosts[i].y);
+    for(var t = 0;t<100;t++){
+      var vec = getRandomInt(0,4);
+      if(vec == 0 && ghosts[i].tryTurn(ghosts[i].x, ghosts[i].y-1)){
+        break;
+      }else if(vec == 1 && ghosts[i].tryTurn(ghosts[i].x+1, ghosts[i].y)){
+        break;
+      }else if(vec == 2 && ghosts[i].tryTurn(ghosts[i].x, ghosts[i].y+1)){
+        break;
+      }else if(vec == 3 && ghosts[i].tryTurn(ghosts[i].x-1, ghosts[i].y)){
+          break;
+      }
+    }
+    if(intersect(hero,ghosts[i]))
+    {
+      hero.tryTurn(1, 1);
+      scrollX =0;
+      scrollY =0;
+    }
+  }
+  drawCell(hero.x,hero.y);
+  changeScroll();
+  hero.tryTurn(hero.x+hero.turnX,hero.y+hero.turnY);
+  drawGhosts();
+  if(intersect(hero,exit)){
+    regen();
+  }
+  //setTimeout(nextTurn,1000);
+}
+function drawGhosts(){
+  for(var i =0; i<ghost_count;i++){
+    hol.drawImage(ghosts[i].getImage(), ghosts[i].x*cell_size, ghosts[i].y*cell_size);
+  }
+  hol.drawImage(image_point,exit.x*cell_size,exit.y*cell_size);
+  hol.drawImage(hero.getImage(),hero.x*cell_size,hero.y*cell_size);
+//  console.log("first ",hero.x," ",hero.y," ",hero.turnX," ",hero.turnY);
+}
+
+function regen(){
+  scrollX = 0;
+  scrollY = 0;
+  hero = new Hero(1,1,g);
+  exit = new Exit(1,2,g);
+  scroll(0,0);
+  preGen();
+  ghostGen();
+  genEnemy(exit);
+  drawField();
+  drawGhosts();
+}
+
+function main(){
+  regen();
+  document.onkeyup=hero.keyUp;
+  document.onkeydown=hero.keyDown;
+
+
+  setInterval(nextTurn, interval);
+}
+</script>
+	</head>
+	<body>
+
+	</body>
+</html>
